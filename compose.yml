@@ -1,0 +1,61 @@
+services:
+    zigbee2mqtt:
+        container_name: zigbee2mqtt
+        image: ghcr.io/koenkk/zigbee2mqtt
+        restart: unless-stopped
+        depends_on:
+            - mqtt
+        volumes:
+            - ${PWD}/data:/app/data
+            - /run/udev:/run/udev:ro
+        ports:
+            # Frontend port
+            - 8080:8080
+        networks:
+            - iot_net
+        environment:
+            - ZIGBEE2MQTT_CONFIG_MQTT_SERVER=mqtt://mqtt:1883
+            - ZIGBEE2MQTT_CONFIG_FRONTEND_PORT=8080
+            - TZ=Europe/Berlin
+#        devices:
+#            # Make sure this matched your adapter location
+#            - /dev/serial/by-id/usb-Texas_Instruments_TI_CC2531_USB_CDC___0X00124B0018ED3DDF-if00:/dev/ttyACM0
+#            - tcp://slzb-06.local:6638:/dev/ttyACM0
+    mqtt:
+        container_name: mqtt
+        stdin_open: true
+        tty: true
+        restart: unless-stopped
+        ports:
+            - 1883:1883
+        expose:
+            - "1883"
+        volumes:
+            - ${PWD}/mosquitto/config:/mosquitto/config
+            - ${PWD}/mosquitto/data
+            - ${PWD}/mosquitto/log
+        image: eclipse-mosquitto
+        networks:
+            - iot_net
+    z2m_converter:
+        build: ./z2m_iot
+        container_name: z2m_converter
+        restart: unless-stopped
+        depends_on:
+            - mqtt
+        networks:
+            - iot_net
+        environment:
+            - IOTOPEN_MQTT_HOST=${IOTOPEN_MQTT_HOST}
+            - IOTOPEN_MQTT_PORT=${IOTOPEN_MQTT_PORT}
+            - IOTOPEN_MQTT_USERNAME=${IOTOPEN_MQTT_USERNAME}
+            - IOTOPEN_MQTT_PASSWORD=${IOTOPEN_MQTT_PASSWORD}
+            - IOTOPEN_CLIENT_ID=${IOTOPEN_CLIENT_ID}
+            - IOTOPEN_INSTALLATION_ID=${IOTOPEN_INSTALLATION_ID}
+            - IOTOPEN_BASEURL=${IOTOPEN_BASEURL}
+            - LOCAL_MQTT_HOST=${LOCAL_MQTT_HOST}
+            - LOCAL_MQTT_PORT=${LOCAL_MQTT_PORT}
+            - PYTHONUNBUFFERED=1
+networks:
+  iot_net:
+    driver: bridge
