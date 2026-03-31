@@ -15,6 +15,8 @@ import signal
 import sys
 import threading
 
+#Zigbee2MQTT decoder/encoder for IoT-Open
+__version__ = "1.0.0"
 
 load_dotenv()
 class Config:
@@ -51,7 +53,6 @@ def on_connect_iot(client, userdata, flags, rc, properties):
     logger.info("Connected to IoT-Open")
     client.subscribe(f"{Config.IOTOPEN_CLIENT_ID}/obj/z2m/+/+/set")
 
-#    client.subscribe("zigbee2mqtt/#")
 
 def from_iotopen_to_z2m(client, userdata, msg):
     #z2m_values = json.loads(msg.payload.decode())
@@ -200,7 +201,9 @@ def iot_open_value(value, timestamp=None):
     return {"timestamp": timestamp, "value": 0, "msg": f"unsupported:{type(value).__name__}"}
 
 def main():
-    global login, logger, client_iot, client_z2m, client_id
+    global login, logger, client_iot, client_z2m, client_id, running
+    
+    logging.Formatter.converter = time.localtime
     logging.basicConfig(
         level=logging.INFO,
         stream=sys.stdout,
@@ -247,14 +250,11 @@ def main():
     signal.signal(signal.SIGINT, handle_signal)
 
 
-    #client_z2m.on_message = on_message
     client_z2m.message_callback_add("zigbee2mqtt/+", send_values_to_iotopen)
     client_z2m.message_callback_add("zigbee2mqtt/bridge/devices", check_devices_in_iotopen)
 
     client_iot.message_callback_add(f"{Config.IOTOPEN_CLIENT_ID}/obj/z2m/+/+/set", from_iotopen_to_z2m)
 
-#    client_z2m.subscribe("zigbee2mqtt/+", qos=0)
-#    client_z2m.subscribe("zigbee2mqtt/bridge/devices", qos=1)
 
     client_z2m.reconnect_delay_set(1, 60)
     #Start heartbeat
@@ -265,12 +265,8 @@ def main():
     client_iot.loop_start()
 
     while True:
-    #    client_z2m.loop()  # Process the MQTT events in the infinite loop
         time.sleep(0.1)
-    #    #print('loop')
 
 
-#Running
-#if __name__ == "__main__":
 main()
 
