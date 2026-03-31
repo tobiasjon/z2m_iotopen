@@ -55,27 +55,20 @@ def on_connect_iot(client, userdata, flags, rc, properties):
 
 
 def from_iotopen_to_z2m(client, userdata, msg):
-    #z2m_values = json.loads(msg.payload.decode())
-    #print(f'topic={msg.topic}' )
     logger.info(f'Topic_write: {msg.topic}')    
-    #961/obj/z2m/0x44e2f8fffe37bbaa/brightness/set
     parts = msg.topic.split("/")
 
     device = parts[3]
     variable = parts[4]
     action = parts[5]
-#    logger.info(f'payload:{msg.payload.decode()}')
+    logger.info(f'payload:{msg.payload.decode()}')
     new_payload = json.dumps({
         variable: json.loads(msg.payload).get("value")    
     })
     client_z2m.publish(f'zigbee2mqtt/{device}/set',new_payload)
-    #for z2m_key, z2m_value in z2m_values.items(): 
-    #    logger.debug(f'{z2m_key}={z2m_value}')
-    #    client_iot.publish(f'{Config.IOTOPEN_CLIENT_ID}/obj/z2m/{msg.topic.split("/")[1]}/{z2m_key}',json.dumps(iot_open_value(z2m_value)))
 
 def send_values_to_iotopen(client, userdata, msg):
     z2m_values = json.loads(msg.payload.decode())
-    #print(f'topic={msg.topic}' )
     logger.info(f'Device updated: {msg.topic}')    
     for z2m_key, z2m_value in z2m_values.items(): 
         logger.debug(f'{z2m_key}={z2m_value}')
